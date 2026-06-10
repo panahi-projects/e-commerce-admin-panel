@@ -1,7 +1,12 @@
 {
-  "name": "free-nextjs-admin-dashboard",
+  "name": "e-commerce-admin-panel",
   "version": "2.3.0",
   "private": true,
+  "author": {
+    "name": "Saeed Panahi",
+    "email": "panahi.projects@gmail.com",
+    "url": "panahi-projects.ir"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
