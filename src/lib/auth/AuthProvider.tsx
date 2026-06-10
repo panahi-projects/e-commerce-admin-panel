@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, session, type ApiSuccess } from '@/lib/api';
 import { authService } from './service';
@@ -36,17 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('unauthenticated');
   }, []);
 
-  // Install the 401 → refresh → retry interceptor once.
-  const handlerRef = useRef<(reason: 'expired' | 'inactive') => void>(() => {});
-  handlerRef.current = (reason) => {
-    clearSession();
-    if (reason === 'inactive') setAuthNotice('inactive');
-    router.replace('/login');
-  };
+  // Install the 401 → refresh → retry interceptor. On auth failure, clear local
+  // state and bounce to /login (surfacing the "inactive account" notice, §5.4).
   useEffect(() => {
-    const id = installRefreshInterceptor((reason) => handlerRef.current(reason));
+    const id = installRefreshInterceptor((reason) => {
+      clearSession();
+      if (reason === 'inactive') setAuthNotice('inactive');
+      router.replace('/login');
+    });
     return () => api.interceptors.response.eject(id);
-  }, []);
+  }, [clearSession, router]);
 
   // Silent bootstrap on load: try the refresh cookie, then hydrate user + permissions.
   useEffect(() => {
