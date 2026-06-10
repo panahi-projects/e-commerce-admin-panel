@@ -1,0 +1,47 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#7c2af7",
+    "activityBar.foreground": "#2af734",
+    "activityBar.inactiveForeground": "#e094cc",
+    "titleBar.activeBackground": "#550695",
+    "titleBar.activeForeground": "#2af734",
+    "statusBar.background": "#230255",
+    "statusBar.foreground": "#ffffff"
+  },
+
+  // ── Extension Registry Mirror ──────────────────────────────────────────────
+  // Redirects extension installs to Open VSX (open-vsx.org) to bypass
+  // connection issues with the official Microsoft marketplace.
+  "extensions.gallery": {
+    "serviceUrl": "https://open-vsx.org/vscode/gallery",
+    "resourceUrlTemplate": "https://open-vsx.org/vscode/asset/{publisher}/{name}/{version}/Microsoft.VisualStudio.Code.WebResources/{path}"
+  },
+
+  // Disable strict SSL in case of corporate firewall / certificate interception
+  "http.proxyStrictSSL": false
+}
