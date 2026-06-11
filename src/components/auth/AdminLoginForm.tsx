@@ -28,6 +28,7 @@ export default function AdminLoginForm() {
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; code?: string }>({});
 
   // Already authenticated → leave the login screen.
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function AdminLoginForm() {
       setOptions(opts);
       setPassword("");
       setCode("");
+      setFieldErrors({});
       setStep("credentials");
       if (opts.otpRequired) {
         const target = otpTarget(opts);
@@ -72,6 +74,14 @@ export default function AdminLoginForm() {
     e.preventDefault();
     if (!options) return;
     setError(null);
+
+    // Required-factor validation — the backend dictates which fields are mandatory.
+    const errors: { password?: string; code?: string } = {};
+    if (options.passwordRequired && !password) errors.password = "Password is required.";
+    if (options.otpRequired && !code.trim()) errors.code = "The one-time code is required.";
+    setFieldErrors(errors);
+    if (errors.password || errors.code) return;
+
     setBusy(true);
     try {
       await login({
@@ -106,6 +116,7 @@ export default function AdminLoginForm() {
     setOptions(null);
     setError(null);
     setInfo(null);
+    setFieldErrors({});
   };
 
   return (
@@ -178,7 +189,12 @@ export default function AdminLoginForm() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
-                    onChange={(e) => setPassword(e.target.value)}
+                    error={!!fieldErrors.password}
+                    hint={fieldErrors.password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }));
+                    }}
                   />
                   <span
                     onClick={() => setShowPassword((v) => !v)}
@@ -199,7 +215,15 @@ export default function AdminLoginForm() {
                 <Label>
                   One-time code <span className="text-error-500">*</span>
                 </Label>
-                <Input placeholder="6-digit code" onChange={(e) => setCode(e.target.value)} />
+                <Input
+                  placeholder="6-digit code"
+                  error={!!fieldErrors.code}
+                  hint={fieldErrors.code}
+                  onChange={(e) => {
+                    setCode(e.target.value);
+                    if (fieldErrors.code) setFieldErrors((p) => ({ ...p, code: undefined }));
+                  }}
+                />
                 <button
                   type="button"
                   onClick={resendOtp}
