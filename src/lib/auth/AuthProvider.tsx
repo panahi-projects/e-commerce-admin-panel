@@ -15,6 +15,8 @@ interface AuthContextValue {
   permissions: EffectivePermissions | null;
   login: (body: AdminLoginRequest) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  /** Revoke every session for this user, then clear local state and bounce to /login. */
+  logoutAll: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
   /** Last forced-logout reason, for surfacing "your account is inactive" (§5.4). */
   authNotice: 'inactive' | null;
@@ -89,6 +91,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   }, [clearSession, router]);
 
+  const logoutAll = useCallback(async () => {
+    try {
+      await authService.logoutAll();
+    } catch {
+      // Ignore — clear locally regardless.
+    }
+    clearSession();
+    router.replace('/login');
+  }, [clearSession, router]);
+
   const refreshPermissions = useCallback(async () => {
     const perms = await authService.permissions();
     setPermissions(perms);
@@ -96,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ status, user, permissions, login, logout, refreshPermissions, authNotice }}
+      value={{ status, user, permissions, login, logout, logoutAll, refreshPermissions, authNotice }}
     >
       {children}
     </AuthContext.Provider>

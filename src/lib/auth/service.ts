@@ -54,4 +54,23 @@ export const authService = {
   /** POST /auth/set-password — first-time password for an OTP-only account (Bearer). */
   setPassword: (newPassword: string) =>
     apiData<unknown>({ method: 'POST', url: '/auth/set-password', data: { newPassword } }),
+
+  /** POST /auth/change-password — Bearer. `confirmNewPassword` is client-only and never sent. */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiData<unknown>({
+      method: 'POST',
+      url: '/auth/change-password',
+      data: { currentPassword, newPassword },
+    }),
+
+  /** POST /auth/2fa/enable — step 1 of the email-OTP 2FA flow (no TOTP/QR). */
+  enable2FA: (channel: 'email' = 'email') =>
+    apiData<unknown>({ method: 'POST', url: '/auth/2fa/enable', data: { channel } }),
+
+  /** POST /auth/2fa/confirm — step 2: verify the emailed code. */
+  confirm2FA: (code: string) =>
+    apiData<unknown>({ method: 'POST', url: '/auth/2fa/confirm', data: { code } }),
+
+  /** POST /auth/2fa/disable — no request body. */
+  disable2FA: () => apiData<unknown>({ method: 'POST', url: '/auth/2fa/disable' }),
 };
