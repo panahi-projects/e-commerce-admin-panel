@@ -6,6 +6,7 @@ export type {
   BuiltInRole,
   EffectivePermissions,
   SectionPermission,
+  AdminLoginOptions,
   AdminLoginRequest,
   AdminLoginResponse,
   RequestOtpResponse,

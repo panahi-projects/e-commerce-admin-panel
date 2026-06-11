@@ -38,6 +38,21 @@ export interface EffectivePermissions {
 
 // --- Request / response DTOs ------------------------------------------------
 
+/**
+ * POST /auth/admin/login/options — step 1 of the login wizard. Probes how the
+ * account signs in and (if OTP is enabled) auto-sends the code.
+ */
+export interface AdminLoginOptions {
+  identifier: string;
+  method: 'password' | 'otp' | 'both' | string;
+  passwordRequired: boolean;
+  otpRequired: boolean;
+  /** Which channels a code was just sent to. */
+  otpSent: { email: boolean; mobile: boolean };
+  /** Channel the OTP was delivered on, when applicable. */
+  channel: 'phone' | 'email' | null;
+}
+
 /** POST /auth/admin/login — send `password` and/or `code` (§5.3). */
 export interface AdminLoginRequest {
   identifier: string;

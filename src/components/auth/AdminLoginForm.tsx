@@ -6,25 +6,26 @@ import Link from "next/link";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { EyeCloseIcon, EyeIcon } from "@/icons";
-import { useAuth, authService } from "@/lib/auth";
+import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { useAuth, authService, type AdminLoginOptions } from "@/lib/auth";
 import { ApiException } from "@/lib/api";
 
-type Mode = "password" | "otp";
+type Step = "identifier" | "credentials";
 
 export default function AdminLoginForm() {
   const router = useRouter();
   const { login, status, authNotice } = useAuth();
 
-  const [mode, setMode] = useState<Mode>("password");
+  const [step, setStep] = useState<Step>("identifier");
   const [identifier, setIdentifier] = useState("");
+  const [options, setOptions] = useState<AdminLoginOptions | null>(null);
+
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -33,42 +34,78 @@ export default function AdminLoginForm() {
     if (status === "authenticated") router.replace("/");
   }, [status, router]);
 
-  const requestCode = async () => {
+  const otpTarget = (o: AdminLoginOptions): string | null => {
+    if (o.otpSent.mobile || o.channel === "phone") return "your mobile";
+    if (o.otpSent.email || o.channel === "email") return "your email";
+    return null;
+  };
+
+  // Step 1 — probe how this account signs in (this also auto-sends the OTP).
+  const checkOptions = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
     setInfo(null);
     if (!identifier.trim()) {
-      setError("Enter your email or mobile number first.");
+      setError("Enter your email or mobile number.");
       return;
     }
-    setSendingOtp(true);
+    setBusy(true);
     try {
-      await authService.requestOtp(identifier.trim());
-      setOtpSent(true);
-      setInfo("A one-time code has been sent.");
+      const opts = await authService.loginOptions(identifier.trim());
+      setOptions(opts);
+      setPassword("");
+      setCode("");
+      setStep("credentials");
+      if (opts.otpRequired) {
+        const target = otpTarget(opts);
+        setInfo(target ? `We sent a one-time code to ${target}.` : "A one-time code has been sent.");
+      }
     } catch (err) {
-      setError(err instanceof ApiException ? err.message : "Could not send the code.");
+      setError(err instanceof ApiException ? err.message : "Could not check this account.");
     } finally {
-      setSendingOtp(false);
+      setBusy(false);
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  // Step 2 — submit the required factors.
+  const submitLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!options) return;
     setError(null);
-    setSubmitting(true);
+    setBusy(true);
     try {
       await login({
         identifier: identifier.trim(),
-        password: mode === "password" ? password : undefined,
-        // Code is allowed in password mode too, for 2FA accounts (§5.3).
-        code: code.trim() || undefined,
+        password: options.passwordRequired ? password : undefined,
+        code: options.otpRequired ? code.trim() : undefined,
       });
       router.replace("/");
     } catch (err) {
       setError(err instanceof ApiException ? err.message : "Sign in failed. Please try again.");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
+  };
+
+  const resendOtp = async () => {
+    setError(null);
+    setInfo(null);
+    setResending(true);
+    try {
+      await authService.requestOtp(identifier.trim());
+      setInfo("A new code has been sent.");
+    } catch (err) {
+      setError(err instanceof ApiException ? err.message : "Could not resend the code.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const backToIdentifier = () => {
+    setStep("identifier");
+    setOptions(null);
+    setError(null);
+    setInfo(null);
   };
 
   return (
@@ -79,29 +116,10 @@ export default function AdminLoginForm() {
             Admin sign in
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Sign in with your email or mobile number.
+            {step === "identifier"
+              ? "Enter your email or mobile number to continue."
+              : "Confirm your identity to finish signing in."}
           </p>
-        </div>
-
-        {/* Mode switch */}
-        <div className="mb-5 inline-flex rounded-lg border border-gray-200 p-1 dark:border-gray-800">
-          {(["password", "otp"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => {
-                setMode(m);
-                setError(null);
-              }}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
-                mode === m
-                  ? "bg-brand-500 text-white"
-                  : "text-gray-600 hover:text-gray-800 dark:text-gray-400"
-              }`}
-            >
-              {m === "password" ? "Password" : "One-time code"}
-            </button>
-          ))}
         </div>
 
         {authNotice === "inactive" && (
@@ -120,20 +138,38 @@ export default function AdminLoginForm() {
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div>
-            <Label>
-              Email or mobile <span className="text-error-500">*</span>
-            </Label>
-            <Input
-              placeholder="you@example.com or 0912…"
-              defaultValue={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-            />
-          </div>
+        {step === "identifier" && (
+          <form onSubmit={checkOptions} className="space-y-5">
+            <div>
+              <Label>
+                Email or mobile <span className="text-error-500">*</span>
+              </Label>
+              <Input
+                placeholder="you@example.com or 0912…"
+                defaultValue={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+              />
+            </div>
+            <Button className="w-full" disabled={busy}>
+              {busy ? "Checking…" : "Continue"}
+            </Button>
+          </form>
+        )}
 
-          {mode === "password" && (
-            <>
+        {step === "credentials" && options && (
+          <form onSubmit={submitLogin} className="space-y-5">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-2.5 dark:border-gray-800">
+              <span className="text-sm text-gray-700 dark:text-gray-300">{identifier}</span>
+              <button
+                type="button"
+                onClick={backToIdentifier}
+                className="inline-flex items-center gap-1 text-sm text-brand-500 hover:text-brand-600"
+              >
+                <ChevronLeftIcon /> Change
+              </button>
+            </div>
+
+            {options.passwordRequired && (
               <div>
                 <Label>
                   Password <span className="text-error-500">*</span>
@@ -156,39 +192,30 @@ export default function AdminLoginForm() {
                   </span>
                 </div>
               </div>
-              <div>
-                <Label>Authentication code</Label>
-                <Input
-                  placeholder="2FA code (only if enabled)"
-                  onChange={(e) => setCode(e.target.value)}
-                />
-              </div>
-            </>
-          )}
+            )}
 
-          {mode === "otp" && (
-            <div>
-              <Label>
-                One-time code <span className="text-error-500">*</span>
-              </Label>
-              <div className="flex gap-2">
+            {options.otpRequired && (
+              <div>
+                <Label>
+                  One-time code <span className="text-error-500">*</span>
+                </Label>
                 <Input placeholder="6-digit code" onChange={(e) => setCode(e.target.value)} />
                 <button
                   type="button"
-                  onClick={requestCode}
-                  disabled={sendingOtp}
-                  className="shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700"
+                  onClick={resendOtp}
+                  disabled={resending}
+                  className="mt-2 text-sm text-brand-500 hover:text-brand-600 disabled:opacity-50"
                 >
-                  {sendingOtp ? "Sending…" : otpSent ? "Resend" : "Send code"}
+                  {resending ? "Sending…" : "Resend code"}
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          <Button className="w-full" disabled={submitting}>
-            {submitting ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
+            <Button className="w-full" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+        )}
 
         <p className="mt-5 text-sm text-center text-gray-600 dark:text-gray-400">
           Have an invite code?{" "}

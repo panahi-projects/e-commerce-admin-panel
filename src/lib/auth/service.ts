@@ -1,5 +1,6 @@
 import { apiData } from '@/lib/api';
 import type {
+  AdminLoginOptions,
   AdminLoginRequest,
   AdminLoginResponse,
   AuthUser,
@@ -13,6 +14,14 @@ import type {
  * `end_user` accounts are rejected with 403 auth.not_admin (§5.3).
  */
 export const authService = {
+  /** POST /auth/admin/login/options — step 1: discover required factors; auto-sends OTP if enabled. */
+  loginOptions: (identifier: string) =>
+    apiData<AdminLoginOptions>({
+      method: 'POST',
+      url: '/auth/admin/login/options',
+      data: { identifier },
+    }),
+
   /** POST /auth/admin/login — password and/or OTP `code`. Returns user + token + permissions. */
   adminLogin: (body: AdminLoginRequest) =>
     apiData<AdminLoginResponse>({ method: 'POST', url: '/auth/admin/login', data: body }),
