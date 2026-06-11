@@ -37,6 +37,22 @@ const emptyAddress: AddressInput = {
   isDefault: false,
 };
 
+// Fields the user may leave blank. Sending "" trips the backend's min-length rules,
+// so they're trimmed and dropped from the payload when empty.
+const OPTIONAL_KEYS = ["phone", "line1", "line2"] as const;
+
+function buildPayload(form: AddressInput): AddressInput {
+  const out: AddressInput = { ...form };
+  (Object.keys(out) as (keyof AddressInput)[]).forEach((k) => {
+    const v = out[k];
+    if (typeof v === "string") (out as Record<string, unknown>)[k] = v.trim();
+  });
+  for (const k of OPTIONAL_KEYS) {
+    if (!out[k]) delete out[k];
+  }
+  return out;
+}
+
 export default function AddressFormModal({
   address,
   onClose,
@@ -58,10 +74,12 @@ export default function AddressFormModal({
     setForm((f) => ({ ...f, [k]: v }));
 
   const mutation = useMutation({
-    mutationFn: () =>
-      isEdit && address
-        ? profileService.updateAddress(address._id, form)
-        : profileService.createAddress(form),
+    mutationFn: () => {
+      const payload = buildPayload(form);
+      return isEdit && address
+        ? profileService.updateAddress(address._id, payload)
+        : profileService.createAddress(payload);
+    },
     onSuccess: async () => {
       await refetch();
       toast(t(isEdit ? "profile.toast.addressUpdated" : "profile.toast.addressAdded"));
