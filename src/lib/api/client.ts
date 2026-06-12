@@ -51,12 +51,32 @@ export async function apiData<T>(config: AxiosRequestConfig): Promise<T> {
   return body.data;
 }
 
-/** Unwrap a paginated list response to `{ items, meta }` (§4). */
+/**
+ * Unwrap a paginated list response to `{ items, meta }` (§4). Tolerant of the
+ * common envelope variants: `data` may be the array itself, or an object that
+ * nests the array under `items` / `data` / `results` / `docs` (with `meta` either
+ * at the top level or alongside the nested array). Always returns an array so
+ * callers can safely `.map`.
+ */
 export async function apiList<T>(config: AxiosRequestConfig): Promise<Paginated<T>> {
-  const body = await request<T[]>(config);
+  const body = await request<unknown>(config);
+  const payload = body.data as unknown;
+
+  let items: T[] = [];
+  let meta = body.meta;
+
+  if (Array.isArray(payload)) {
+    items = payload as T[];
+  } else if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>;
+    const nested = obj.items ?? obj.data ?? obj.results ?? obj.docs;
+    if (Array.isArray(nested)) items = nested as T[];
+    if (!meta && obj.meta && typeof obj.meta === 'object') meta = obj.meta as Paginated<T>['meta'];
+  }
+
   return {
-    items: body.data,
-    meta: body.meta ?? { total: body.data.length, page: 1, limit: body.data.length, totalPages: 1 },
+    items,
+    meta: meta ?? { total: items.length, page: 1, limit: items.length || 1, totalPages: 1 },
   };
 }
 

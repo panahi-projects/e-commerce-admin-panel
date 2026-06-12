@@ -4,7 +4,6 @@ import type {
   AuditLog,
   Cart,
   ResetPasswordPayload,
-  UserCoupon,
   UserDetail,
   UserListItem,
   UserOrder,
@@ -55,9 +54,10 @@ export const usersService = {
   reviews: (id: string, params: FetchParams) =>
     apiList<UserReview>({ method: 'GET', url: `/user-manager/users/${id}/reviews`, params }),
 
-  /** GET /user-manager/users/:id/coupons — plain array (used + unused). */
+  /** GET /user-manager/users/:id/coupons — shape varies (array, `{used,unused}`,
+   *  or a nested array); normalized by the Coupons tab. */
   coupons: (id: string) =>
-    apiData<UserCoupon[]>({ method: 'GET', url: `/user-manager/users/${id}/coupons` }),
+    apiData<unknown>({ method: 'GET', url: `/user-manager/users/${id}/coupons` }),
 
   /** GET /audit-logs?userId=:id — activity log (auditLogs plugin). */
   activity: (params: FetchParams) =>

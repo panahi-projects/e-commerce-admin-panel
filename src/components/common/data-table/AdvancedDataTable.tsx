@@ -73,7 +73,7 @@ export default function AdvancedDataTable<T>(props: AdvancedDataTableProps<T>) {
     staleTime: 15_000,
   });
 
-  const rows = query.data?.items ?? [];
+  const rows = Array.isArray(query.data?.items) ? query.data.items : [];
   const meta = query.data?.meta;
   const totalPages = meta?.totalPages ?? 1;
   const colSpan = table.visibleColumns.length + (rowActions.length ? 1 : 0);

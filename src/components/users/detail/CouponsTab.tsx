@@ -8,6 +8,30 @@ import { ApiException } from "@/lib/api";
 import { usersService, isCouponUsed, type UserCoupon } from "@/lib/users";
 import { useI18n } from "@/lib/i18n";
 
+/**
+ * Coupons come back in one of several shapes (unconfirmed API): a flat array, an
+ * already-split `{ used, unused }`, or a nested `{ items | data | coupons }`.
+ * Normalize to `{ used, unused }` defensively.
+ */
+function splitCoupons(data: unknown): { used: UserCoupon[]; unused: UserCoupon[] } {
+  const split = (arr: UserCoupon[]) => ({
+    used: arr.filter(isCouponUsed),
+    unused: arr.filter((c) => !isCouponUsed(c)),
+  });
+
+  if (Array.isArray(data)) return split(data as UserCoupon[]);
+
+  if (data && typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.used) || Array.isArray(o.unused)) {
+      return { used: (o.used as UserCoupon[]) ?? [], unused: (o.unused as UserCoupon[]) ?? [] };
+    }
+    const nested = o.items ?? o.data ?? o.coupons ?? o.results ?? o.docs;
+    if (Array.isArray(nested)) return split(nested as UserCoupon[]);
+  }
+  return { used: [], unused: [] };
+}
+
 function CouponGroup({
   title,
   list,
@@ -63,9 +87,7 @@ export default function CouponsTab({ userId }: { userId: string }) {
     return <LockedNotice title={is403 ? t("users.locked.title") : t("table.error")} hint={is403 ? t("users.locked.hint") : undefined} />;
   }
 
-  const coupons = data ?? [];
-  const used = coupons.filter(isCouponUsed);
-  const unused = coupons.filter((c) => !isCouponUsed(c));
+  const { used, unused } = splitCoupons(data);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
