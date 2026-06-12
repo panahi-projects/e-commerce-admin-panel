@@ -21,6 +21,20 @@ async function doRefresh(): Promise<string> {
 }
 
 /**
+ * Refresh the access token through a single shared in-flight call. EVERY caller
+ * (the bootstrap, StrictMode's double-mount, and the 401 interceptor) must use
+ * this — `/auth/refresh` rotates the refresh cookie, so two concurrent calls
+ * would make the second replay a consumed cookie and 401 (causing a spurious
+ * logout). De-duping to one promise makes a single rotation serve all callers.
+ */
+export function refreshAccessToken(): Promise<string> {
+  refreshPromise ??= doRefresh().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
+/**
  * Install the 401 → /auth/refresh → retry interceptor. `onAuthFailure` is called
  * when refresh fails (or the account is inactive) so the app can clear state and
  * redirect to login. Returns an eject function.
@@ -48,10 +62,7 @@ export function installRefreshInterceptor(onAuthFailure: (reason: 'expired' | 'i
 
       config._retry = true;
       try {
-        refreshPromise ??= doRefresh().finally(() => {
-          refreshPromise = null;
-        });
-        const token = await refreshPromise;
+        const token = await refreshAccessToken();
         config.headers.set('Authorization', `Bearer ${token}`);
         return api.request(config);
       } catch (refreshErr) {

@@ -11,7 +11,8 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "clear:dev": "Remove-Item -Recurse -Force .next ; npm run dev"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",

@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, session, type ApiSuccess } from '@/lib/api';
+import { api, session } from '@/lib/api';
 import { authService } from './service';
-import { installRefreshInterceptor } from './refreshInterceptor';
+import { installRefreshInterceptor, refreshAccessToken } from './refreshInterceptor';
 import type { AdminLoginRequest, AuthUser, EffectivePermissions } from './types';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -54,8 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const res = await api.post<ApiSuccess<{ accessToken: string }>>('/auth/refresh');
-        session.setAccessToken(res.data.data.accessToken);
+        // Shared single-flight refresh — safe under StrictMode's double-mount and
+        // against a concurrent interceptor refresh (one cookie rotation for all).
+        await refreshAccessToken();
         const [me, perms] = await Promise.all([authService.me(), authService.permissions()]);
         if (!active) return;
         setUser(me);
