@@ -1,5 +1,5 @@
 import { apiData } from '@/lib/api';
-import type { Address, AddressInput, Profile, UpdateProfileRequest } from './types';
+import type { Address, AddressInput, DeviceSession, Profile, UpdateProfileRequest } from './types';
 
 /**
  * Profile + addresses API calls. All go through the shared envelope-aware
@@ -24,4 +24,18 @@ export const profileService = {
   /** DELETE /profile/addresses/:id. */
   deleteAddress: (id: string) =>
     apiData<unknown>({ method: 'DELETE', url: `/profile/addresses/${id}` }),
+};
+
+/** Active-session manager (Sessions tab) — GET/DELETE /auth/sessions. */
+export const sessionsService = {
+  /** GET /auth/sessions — active sessions for the current user. */
+  list: () => apiData<DeviceSession[]>({ method: 'GET', url: '/auth/sessions' }),
+
+  /** DELETE /auth/sessions/:id — revoke a single session. */
+  revoke: (id: string) =>
+    apiData<unknown>({ method: 'DELETE', url: `/auth/sessions/${id}` }),
+
+  /** POST /auth/sessions/logout-others — revoke every session except the current one. */
+  logoutOthers: () =>
+    apiData<unknown>({ method: 'POST', url: '/auth/sessions/logout-others' }),
 };

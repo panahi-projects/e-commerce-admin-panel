@@ -46,15 +46,18 @@ export interface UpdateProfileRequest {
 /** POST/PATCH /profile/addresses body. `_id` is never sent. */
 export type AddressInput = Omit<Address, '_id'>;
 
-// --- Sessions (Tab 4) — no backend endpoint yet; shape is mocked. -----------
+// --- Sessions (Tab 4) — GET /auth/sessions. ---------------------------------
 
 export interface DeviceSession {
   id: string;
-  device: 'desktop' | 'mobile' | 'tablet';
-  browser: string;
-  os: string;
-  location: string;
+  /** True for the session making this request. */
+  current: boolean;
+  /** Human label, e.g. "Chrome on Windows". */
+  device: string;
+  userAgent: string;
   ip: string;
+  location: string | null;
+  loginAt: string;
   lastActiveAt: string;
-  isCurrent: boolean;
+  expiresAt: string;
 }

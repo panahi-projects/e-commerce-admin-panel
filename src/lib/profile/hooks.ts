@@ -2,9 +2,10 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import { profileService } from './service';
+import { profileService, sessionsService } from './service';
 
 export const PROFILE_QUERY_KEY = ['profile'] as const;
+export const SESSIONS_QUERY_KEY = ['auth', 'sessions'] as const;
 
 /** Single source of truth for the profile (incl. addresses). Mutations invalidate this. */
 export function useProfile() {
@@ -24,4 +25,13 @@ export function useRefetchProfile() {
   );
 }
 
-export { profileService };
+/** Active sessions for the current user (Sessions tab). */
+export function useSessions() {
+  return useQuery({
+    queryKey: SESSIONS_QUERY_KEY,
+    queryFn: () => sessionsService.list(),
+    staleTime: 30_000,
+  });
+}
+
+export { profileService, sessionsService };

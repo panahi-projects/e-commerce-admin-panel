@@ -1,41 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import Card from "./Card";
 import ConfirmDialog from "./modals/ConfirmDialog";
+import { useToast } from "./ToastProvider";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
-import { useAuth } from "@/lib/auth";
+import { sessionsService, useSessions, type DeviceSession } from "@/lib/profile";
 import { useI18n } from "@/lib/i18n";
-import type { DeviceSession } from "@/lib/profile";
 
-// Mock data — replace with a real GET /sessions feed when the endpoint exists.
-const MOCK_SESSIONS: DeviceSession[] = [
-  {
-    id: "current",
-    device: "desktop",
-    browser: "Chrome 124",
-    os: "Windows 11",
-    location: "Tehran, IR",
-    ip: "151.240.10.4",
-    lastActiveAt: "2026-06-11T09:12:00.000Z",
-    isCurrent: true,
-  },
-  {
-    id: "s2",
-    device: "mobile",
-    browser: "Safari",
-    os: "iOS 18",
-    location: "Tehran, IR",
-    ip: "188.229.42.18",
-    lastActiveAt: "2026-06-10T20:40:00.000Z",
-    isCurrent: false,
-  },
-];
+const isMobileUA = (ua: string) => /mobile|android|iphone|ipad|ipod/i.test(ua);
 
-const DeviceIcon = ({ device }: { device: DeviceSession["device"] }) => (
-  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-300">
-    {device === "mobile" ? (
+const DeviceIcon = ({ mobile }: { mobile: boolean }) => (
+  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-300">
+    {mobile ? (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" strokeWidth="1.6" />
         <path d="M11 18h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -49,11 +28,29 @@ const DeviceIcon = ({ device }: { device: DeviceSession["device"] }) => (
   </span>
 );
 
+function SessionsSkeleton() {
+  return (
+    <Card className="!p-0">
+      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+        {[0, 1, 2].map((i) => (
+          <li key={i} className="flex items-center gap-4 p-4">
+            <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-gray-100 dark:bg-white/[0.06]" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-48 animate-pulse rounded bg-gray-100 dark:bg-white/[0.06]" />
+              <div className="h-3 w-32 animate-pulse rounded bg-gray-100 dark:bg-white/[0.06]" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export default function SessionsTab() {
   const { t, locale } = useI18n();
-  const { logoutAll } = useAuth();
-  const [sessions, setSessions] = useState<DeviceSession[]>(MOCK_SESSIONS);
-  const [confirmAll, setConfirmAll] = useState(false);
+  const { toast } = useToast();
+  const { data: sessions, isLoading, isError, refetch, isFetching } = useSessions();
+  const [confirmOthers, setConfirmOthers] = useState(false);
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString(locale === "fa" ? "fa-IR" : "en-US", {
@@ -61,8 +58,29 @@ export default function SessionsTab() {
       timeStyle: "short",
     });
 
-  const revoke = (id: string) => setSessions((prev) => prev.filter((s) => s.id !== id));
-  const others = sessions.filter((s) => !s.isCurrent);
+  const revoke = useMutation({
+    mutationFn: (id: string) => sessionsService.revoke(id),
+    onSuccess: async () => {
+      await refetch();
+      toast(t("profile.sessions.revoked"));
+    },
+    onError: () => toast(t("common.somethingWrong"), "error"),
+  });
+
+  if (isLoading) return <SessionsSkeleton />;
+
+  if (isError || !sessions) {
+    return (
+      <Card>
+        <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">{t("profile.error.load")}</p>
+          <Button size="sm" variant="outline" disabled={isFetching} onClick={() => refetch()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   if (sessions.length === 0) {
     return (
@@ -79,47 +97,48 @@ export default function SessionsTab() {
     );
   }
 
+  const others = sessions.filter((s) => !s.current);
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
           {t("profile.sessions.title")}
         </h2>
         {others.length > 0 && (
-          <Button size="sm" variant="danger" onClick={() => setConfirmAll(true)}>
+          <Button size="sm" variant="danger" onClick={() => setConfirmOthers(true)}>
             {t("profile.sessions.logoutOthers")}
           </Button>
         )}
       </div>
 
-      <p className="text-xs text-gray-400 dark:text-gray-500">{t("profile.sessions.mockNote")}</p>
-
       <Card className="!p-0">
         <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-          {sessions.map((s) => (
+          {sessions.map((s: DeviceSession) => (
             <li key={s.id} className="flex items-center gap-4 p-4">
-              <DeviceIcon device={s.device} />
+              <DeviceIcon mobile={isMobileUA(s.userAgent)} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-medium text-gray-800 dark:text-white/90">
-                    {s.browser} · {s.os}
+                    {s.device}
                   </p>
-                  {s.isCurrent && (
+                  {s.current && (
                     <Badge color="success" size="sm">{t("profile.sessions.current")}</Badge>
                   )}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
-                  {s.location} · {s.ip}
+                  {[s.location, s.ip].filter(Boolean).join(" · ")}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   {t("profile.sessions.lastActive")}: {fmt(s.lastActiveAt)}
                 </p>
               </div>
-              {!s.isCurrent && (
+              {!s.current && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => revoke(s.id)}
+                  disabled={revoke.isPending}
+                  onClick={() => revoke.mutate(s.id)}
                 >
                   {t("profile.sessions.revoke")}
                 </Button>
@@ -129,13 +148,19 @@ export default function SessionsTab() {
         </ul>
       </Card>
 
-      {confirmAll && (
+      {confirmOthers && (
         <ConfirmDialog
-          title={t("profile.logoutAll.title")}
-          message={t("profile.logoutAll.confirm")}
+          title={t("profile.sessions.logoutOthersTitle")}
+          message={t("profile.sessions.logoutOthersConfirm")}
           confirmLabel={t("profile.sessions.logoutOthers")}
-          onConfirm={() => logoutAll()}
-          onClose={() => setConfirmAll(false)}
+          // Revokes other sessions but keeps the current one — so refetch, don't redirect.
+          onConfirm={async () => {
+            await sessionsService.logoutOthers();
+            await refetch();
+            toast(t("profile.sessions.othersRevoked"));
+            setConfirmOthers(false);
+          }}
+          onClose={() => setConfirmOthers(false)}
         />
       )}
     </div>

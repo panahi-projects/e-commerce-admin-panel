@@ -149,8 +149,13 @@ const en = {
   'profile.sessions.logoutOthers': 'Log out all other sessions',
   'profile.sessions.lastActive': 'Last active',
   'profile.sessions.empty': 'No active sessions to show',
-  'profile.sessions.emptyHint': 'Session details aren’t available yet.',
-  'profile.sessions.mockNote': 'Showing sample data — live sessions will appear here once available.',
+  'profile.sessions.emptyHint': 'There are no active sessions to display.',
+  'profile.sessions.expires': 'Expires',
+  'profile.sessions.revoked': 'Session revoked.',
+  'profile.sessions.othersRevoked': 'Other sessions logged out.',
+  'profile.sessions.logoutOthersTitle': 'Log out other sessions',
+  'profile.sessions.logoutOthersConfirm':
+    'This ends every other active session. Your current session stays signed in.',
 
   // Toasts
   'profile.toast.profileUpdated': 'Profile updated.',
@@ -302,8 +307,13 @@ const fa: Record<TranslationKey, string> = {
   'profile.sessions.logoutOthers': 'خروج از همه نشست‌های دیگر',
   'profile.sessions.lastActive': 'آخرین فعالیت',
   'profile.sessions.empty': 'نشست فعالی برای نمایش وجود ندارد',
-  'profile.sessions.emptyHint': 'جزئیات نشست هنوز در دسترس نیست.',
-  'profile.sessions.mockNote': 'نمایش داده نمونه — نشست‌های واقعی پس از در دسترس قرار گرفتن اینجا نمایش داده می‌شوند.',
+  'profile.sessions.emptyHint': 'نشست فعالی برای نمایش وجود ندارد.',
+  'profile.sessions.expires': 'انقضا',
+  'profile.sessions.revoked': 'نشست لغو شد.',
+  'profile.sessions.othersRevoked': 'سایر نشست‌ها خارج شدند.',
+  'profile.sessions.logoutOthersTitle': 'خروج از سایر نشست‌ها',
+  'profile.sessions.logoutOthersConfirm':
+    'این کار همه نشست‌های دیگر را پایان می‌دهد. نشست فعلی شما وارد باقی می‌ماند.',
 
   'profile.toast.profileUpdated': 'پروفایل به‌روزرسانی شد.',
   'profile.toast.addressAdded': 'آدرس اضافه شد.',
