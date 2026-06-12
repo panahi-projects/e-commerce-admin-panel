@@ -8,4 +8,5 @@ export type PluginKey =
   | 'analytics'
   | 'loyaltyPoints'
   | 'notifications'
-  | 'auditLogs';
+  | 'auditLogs'
+  | 'userManager';

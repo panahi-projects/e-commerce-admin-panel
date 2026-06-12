@@ -19,12 +19,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // This code will only run on the client side
+    // Client-only hydration from localStorage (same pattern as I18n/Tenant providers).
+    /* eslint-disable react-hooks/set-state-in-effect */
     const savedTheme = localStorage.getItem("theme") as Theme | null;
     const initialTheme = savedTheme || "light"; // Default to light theme
 
     setTheme(initialTheme);
     setIsInitialized(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   useEffect(() => {

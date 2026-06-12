@@ -50,7 +50,7 @@ export const SECTIONS: SectionDef[] = [
   { id: 'products', path: '/products', labelKey: 'nav.products', icon: BoxCubeIcon, group: 'management', permissionKey: 'products' },
   { id: 'categories', path: '/categories', labelKey: 'nav.categories', icon: FolderIcon, group: 'management', permissionKey: 'categories' },
   { id: 'inventory', path: '/inventory', labelKey: 'nav.inventory', icon: BoxIconLine, group: 'management', permissionKey: 'inventory' },
-  { id: 'customers', path: '/customers', labelKey: 'nav.customers', icon: GroupIcon, group: 'management', permissionKey: 'users' },
+  { id: 'users', path: '/admin/users', labelKey: 'nav.users', icon: GroupIcon, group: 'management', permissionKey: 'users' },
   { id: 'coupons', path: '/coupons', labelKey: 'nav.coupons', icon: DollarLineIcon, group: 'management', permissionKey: 'coupons', pluginKey: 'coupons' },
   { id: 'reviews', path: '/reviews', labelKey: 'nav.reviews', icon: ShootingStarIcon, group: 'management', permissionKey: 'reviews', pluginKey: 'reviews' },
   { id: 'banners', path: '/marketing/banners', labelKey: 'nav.banners', icon: TableIcon, group: 'management', permissionKey: 'banners', pluginKey: 'marketing' },
